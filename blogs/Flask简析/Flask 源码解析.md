@@ -1,9 +1,15 @@
+---
+title: Flask 源码解析
+tags: python
+notebook: python
+---
+
 # Flask 源码解析
 
 ## 基本概念
 ### WSGI：服务端与程序端的协议
 实际生产中，`python`程序是放在服务器的 `http server`（比如 `apache`， `nginx` 等）上的。现在的问题是 服务器程序怎么把接受到的请求传递给` python `呢，怎么在网络的数据流和 `python` 的结构体之间转换呢？这就是` wsgi` 做的事情：一套关于程序端和服务器端的规范，或者说统一的接口。
-@import "wsgi概念图1.jpg"
+@import "imgs/wsgi概念图1.jpg"
 `wsgi`需要一个符合规范的`application`实例来处理所有的请求，并将`http server`的请求转换为符合`pyhton`标准的请求传递给这个实例。
 `python `标准官方库中，提供了一个简单的`wsgi`实现，位于`wsgiref`包中：
 
