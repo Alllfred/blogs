@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+  <html>
+    <head>
+      <title>Flask 源码解析</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.css">
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+
+      <style> 
+      /**
+ * prism.js Github theme based on GitHub's theme.
+ * @author Sam Clarke
+ */
+code[class*="language-"],
+pre[class*="language-"] {
+  color: #333;
+  background: none;
+  font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  line-height: 1.4;
+
+  -moz-tab-size: 8;
+  -o-tab-size: 8;
+  tab-size: 8;
+
+  -webkit-hyphens: none;
+  -moz-hyphens: none;
+  -ms-hyphens: none;
+  hyphens: none;
+}
+
+/* Code blocks */
+pre[class*="language-"] {
+  padding: .8em;
+  overflow: auto;
+  /* border: 1px solid #ddd; */
+  border-radius: 3px;
+  /* background: #fff; */
+  background: #f5f5f5;
+}
+
+/* Inline code */
+:not(pre) > code[class*="language-"] {
+  padding: .1em;
+  border-radius: .3em;
+  white-space: normal;
+  background: #f5f5f5;
+}
+
+.token.comment,
+.token.blockquote {
+  color: #969896;
+}
+
+.token.cdata {
+  color: #183691;
+}
+
+.token.doctype,
+.token.punctuation,
+.token.variable,
+.token.macro.property {
+  color: #333;
+}
+
+.token.operator,
+.token.important,
+.token.keyword,
+.token.rule,
+.token.builtin {
+  color: #a71d5d;
+}
+
+.token.string,
+.token.url,
+.token.regex,
+.token.attr-value {
+  color: #183691;
+}
+
+.token.property,
+.token.number,
+.token.boolean,
+.token.entity,
+.token.atrule,
+.token.constant,
+.token.symbol,
+.token.command,
+.token.code {
+  color: #0086b3;
+}
+
+.token.tag,
+.token.selector,
+.token.prolog {
+  color: #63a35c;
+}
+
+.token.function,
+.token.namespace,
+.token.pseudo-element,
+.token.class,
+.token.class-name,
+.token.pseudo-class,
+.token.id,
+.token.url-reference .token.variable,
+.token.attr-name {
+  color: #795da3;
+}
+
+.token.entity {
+  cursor: help;
+}
+
+.token.title,
+.token.title .token.punctuation {
+  font-weight: bold;
+  color: #1d3e81;
+}
+
+.token.list {
+  color: #ed6a43;
+}
+
+.token.inserted {
+  background-color: #eaffea;
+  color: #55a532;
+}
+
+.token.deleted {
+  background-color: #ffecec;
+  color: #bd2c00;
+}
+
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+
+/* JSON */
+.language-json .token.property {
+  color: #183691;
+}
+
+.language-markup .token.tag .token.punctuation {
+  color: #333;
+}
+
+/* CSS */
+code.language-css,
+.language-css .token.function {
+  color: #0086b3;
+}
+
+/* YAML */
+.language-yaml .token.atrule {
+  color: #63a35c;
+}
+
+code.language-yaml {
+  color: #183691;
+}
+
+/* Ruby */
+.language-ruby .token.function {
+  color: #333;
+}
+
+/* Markdown */
+.language-markdown .token.url {
+  color: #795da3;
+}
+
+/* Makefile */
+.language-makefile .token.symbol {
+  color: #795da3;
+}
+
+.language-makefile .token.variable {
+  color: #183691;
+}
+
+.language-makefile .token.builtin {
+  color: #0086b3;
+}
+
+/* Bash */
+.language-bash .token.keyword {
+  color: #0086b3;
+}html body{font-family:"Helvetica Neue",Helvetica,"Segoe UI",Arial,freesans,sans-serif;font-size:16px;line-height:1.6;color:#333;background-color:#fff;overflow:initial;box-sizing:border-box;word-wrap:break-word}html body>:first-child{margin-top:0}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{line-height:1.2;margin-top:1em;margin-bottom:16px;color:#000}html body h1{font-size:2.25em;font-weight:300;padding-bottom:.3em}html body h2{font-size:1.75em;font-weight:400;padding-bottom:.3em}html body h3{font-size:1.5em;font-weight:500}html body h4{font-size:1.25em;font-weight:600}html body h5{font-size:1.1em;font-weight:600}html body h6{font-size:1em;font-weight:600}html body h1,html body h2,html body h3,html body h4,html body h5{font-weight:600}html body h5{font-size:1em}html body h6{color:#5c5c5c}html body strong{color:#000}html body del{color:#5c5c5c}html body a:not([href]){color:inherit;text-decoration:none}html body a{color:#08c;text-decoration:none}html body a:hover{color:#00a3f5;text-decoration:none}html body img{max-width:100%}html body>p{margin-top:0;margin-bottom:16px;word-wrap:break-word}html body>ul,html body>ol{margin-bottom:16px}html body ul,html body ol{padding-left:2em}html body ul.no-list,html body ol.no-list{padding:0;list-style-type:none}html body ul ul,html body ul ol,html body ol ol,html body ol ul{margin-top:0;margin-bottom:0}html body li{margin-bottom:0}html body li.task-list-item{list-style:none}html body li>p{margin-top:0;margin-bottom:0}html body .task-list-item-checkbox{margin:0 .2em .25em -1.8em;vertical-align:middle}html body .task-list-item-checkbox:hover{cursor:pointer}html body blockquote{margin:16px 0;font-size:inherit;padding:0 15px;color:#5c5c5c;border-left:4px solid #d6d6d6}html body blockquote>:first-child{margin-top:0}html body blockquote>:last-child{margin-bottom:0}html body hr{height:4px;margin:32px 0;background-color:#d6d6d6;border:0 none}html body table{margin:10px 0 15px 0;border-collapse:collapse;border-spacing:0;display:block;width:100%;overflow:auto;word-break:normal;word-break:keep-all}html body table th{font-weight:bold;color:#000}html body table td,html body table th{border:1px solid #d6d6d6;padding:6px 13px}html body dl{padding:0}html body dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:bold}html body dl dd{padding:0 16px;margin-bottom:16px}html body code{font-family:Menlo,Monaco,Consolas,'Courier New',monospace;font-size:.85em !important;color:#000;background-color:#f0f0f0;border-radius:3px;padding:.2em 0}html body code::before,html body code::after{letter-spacing:-0.2em;content:"\00a0"}html body pre>code{padding:0;margin:0;font-size:.85em !important;word-break:normal;white-space:pre;background:transparent;border:0}html body .highlight{margin-bottom:16px}html body .highlight pre,html body pre{padding:1em;overflow:auto;font-size:.85em !important;line-height:1.45;border:#d6d6d6;border-radius:3px}html body .highlight pre{margin-bottom:0;word-break:normal}html body pre code,html body pre tt{display:inline;max-width:initial;padding:0;margin:0;overflow:initial;line-height:inherit;word-wrap:normal;background-color:transparent;border:0}html body pre code:before,html body pre tt:before,html body pre code:after,html body pre tt:after{content:normal}html body p,html body blockquote,html body ul,html body ol,html body dl,html body pre{margin-top:0;margin-bottom:16px}html body kbd{color:#000;border:1px solid #d6d6d6;border-bottom:2px solid #c7c7c7;padding:2px 4px;background-color:#f0f0f0;border-radius:3px}@media print{html body{background-color:#fff}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{color:#000;page-break-after:avoid}html body blockquote{color:#5c5c5c}html body pre{page-break-inside:avoid}html body table{display:table}html body img{display:block;max-width:100%;max-height:100%}html body pre,html body code{word-wrap:break-word;white-space:pre}}.markdown-preview{width:100%;height:100%;box-sizing:border-box}.markdown-preview .pagebreak,.markdown-preview .newpage{page-break-before:always}.markdown-preview pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}.markdown-preview pre.line-numbers>code{position:relative}.markdown-preview pre.line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:1em;font-size:100%;left:0;width:3em;letter-spacing:-1px;border-right:1px solid #999;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.markdown-preview pre.line-numbers .line-numbers-rows>span{pointer-events:none;display:block;counter-increment:linenumber}.markdown-preview pre.line-numbers .line-numbers-rows>span:before{content:counter(linenumber);color:#999;display:block;padding-right:.8em;text-align:right}.markdown-preview .mathjax-exps .MathJax_Display{text-align:center !important}.markdown-preview:not([for="preview"]) .code-chunk .btn-group{display:none}.markdown-preview:not([for="preview"]) .code-chunk .status{display:none}.markdown-preview:not([for="preview"]) .code-chunk .output-div{margin-bottom:16px}.scrollbar-style::-webkit-scrollbar{width:8px}.scrollbar-style::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}.scrollbar-style::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,0.66);border:4px solid rgba(150,150,150,0.66);background-clip:content-box}html body[for="html-export"]:not([data-presentation-mode]){position:relative;width:100%;height:100%;top:0;left:0;margin:0;padding:0;overflow:auto}html body[for="html-export"]:not([data-presentation-mode]) .markdown-preview{position:relative;top:0}@media screen and (min-width:914px){html body[for="html-export"]:not([data-presentation-mode]) .markdown-preview{padding:2em calc(50% - 457px)}}@media screen and (max-width:914px){html body[for="html-export"]:not([data-presentation-mode]) .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for="html-export"]:not([data-presentation-mode]) .markdown-preview{font-size:14px !important;padding:1em}}@media print{html body[for="html-export"]:not([data-presentation-mode]) #sidebar-toc-btn{display:none}}html body[for="html-export"]:not([data-presentation-mode]) #sidebar-toc-btn{position:fixed;bottom:8px;left:8px;font-size:28px;cursor:pointer;color:inherit;z-index:99;width:32px;text-align:center;opacity:.4}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] #sidebar-toc-btn{opacity:1}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc{position:fixed;top:0;left:0;width:300px;height:100%;padding:32px 0 48px 0;font-size:14px;box-shadow:0 0 4px rgba(150,150,150,0.33);box-sizing:border-box;overflow:auto;background-color:inherit}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar{width:8px}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,0.66);border:4px solid rgba(150,150,150,0.66);background-clip:content-box}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc a{text-decoration:none}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc ul{padding:0 1.6em;margin-top:.8em}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc li{margin-bottom:.8em}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc ul{list-style-type:none}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{left:300px;width:calc(100% -  300px);padding:2em calc(50% - 457px -  150px);margin:0;box-sizing:border-box}@media screen and (max-width:1274px){html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{width:100%}}html body[for="html-export"]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .markdown-preview{left:50%;transform:translateX(-50%)}html body[for="html-export"]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .md-sidebar-toc{display:none}
+/* Please visit the URL below for more information: */
+/*   https://shd101wyy.github.io/markdown-preview-enhanced/#/customize-css */
+ 
+      </style>
+    </head>
+    <body for="html-export">
+      <div class="mume markdown-preview   ">
+      <h1 class="mume-header" id="flask-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90">Flask 源码解析</h1>
+
+<h2 class="mume-header" id="%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5">基本概念</h2>
+
+<h3 class="mume-header" id="wsgi%E6%9C%8D%E5%8A%A1%E7%AB%AF%E4%B8%8E%E7%A8%8B%E5%BA%8F%E7%AB%AF%E7%9A%84%E5%8D%8F%E8%AE%AE">WSGI：服务端与程序端的协议</h3>
+
+<p>实际生产中，<code>python</code>程序是放在服务器的 <code>http server</code>（比如 <code>apache</code>， <code>nginx</code> 等）上的。现在的问题是 服务器程序怎么把接受到的请求传递给<code>python</code>呢，怎么在网络的数据流和 <code>python</code> 的结构体之间转换呢？这就是<code>wsgi</code> 做的事情：一套关于程序端和服务器端的规范，或者说统一的接口。<br>
+<img src="imgs/wsgi%E6%A6%82%E5%BF%B5%E5%9B%BE1.jpg?0.654583652347086" alt=""><br>
+<code>wsgi</code>需要一个符合规范的<code>application</code>实例来处理所有的请求，并将<code>http server</code>的请求转换为符合<code>pyhton</code>标准的请求传递给这个实例。<br>
+<code>python</code>标准官方库中，提供了一个简单的<code>wsgi</code>实现，位于<code>wsgiref</code>包中：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">from</span> wsgiref<span class="token punctuation">.</span>simple_server <span class="token keyword">import</span> make_server<span class="token punctuation">,</span> demo_app
+
+httpd <span class="token operator">=</span> make_server<span class="token punctuation">(</span><span class="token string">''</span><span class="token punctuation">,</span> <span class="token number">8000</span><span class="token punctuation">,</span> demo_app<span class="token punctuation">)</span>
+<span class="token keyword">print</span> <span class="token string">"Serving HTTP on port 8000..."</span>
+
+<span class="token comment"># Respond to requests until process is killed</span>
+httpd<span class="token punctuation">.</span>serve_forever<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment"># Alternative: serve one request, then exit</span>
+httpd<span class="token punctuation">.</span>handle_request<span class="token punctuation">(</span><span class="token punctuation">)</span>
+</pre><p>其中<code>make_server</code>返回了一个继承自<code>HTTPServer</code>的<code>WSGIServer</code>实例。而<code>WSGIServer</code>实例是通过继承<code>SocketServer</code>包中的<code>TCPServer</code>来实现的。<code>WSGIServer</code>实现了上文中叙述的<code>application</code>的绑定，并实现了处理请求的逻辑。</p>
+<p>其中<code>demo_app</code>即为上文描述的对<code>wsgi</code>提供的</p>
+<h5 class="mume-header" id="werkzeugflask%E6%A1%86%E6%9E%B6%E6%8F%90%E4%BE%9B%E7%9A%84%E9%BB%98%E8%AE%A4wsgi%E5%8D%8F%E8%AE%AE%E5%AE%9E%E7%8E%B0">werkzeug：Flask框架提供的默认wsgi协议实现</h5>
+
+<p><code>werkzeug</code>是一个开源的<code>wsgi</code>协议的实现，与<code>flask</code>框架的作者是同一帮人。<br>
+与官方标准包不同的是，<code>werkzeug</code>不仅提供了多线程，多进程的能力，还封装了请求，响应，cookie等常用的web数据结构，以供使用。比如：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">from</span> werkzeug<span class="token punctuation">.</span>wrappers <span class="token keyword">import</span> Request<span class="token punctuation">,</span> Response
+
+<span class="token keyword">def</span> applicatio n<span class="token punctuation">(</span>environ<span class="token punctuation">,</span> start_response<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    request <span class="token operator">=</span> Request<span class="token punctuation">(</span>environ<span class="token punctuation">)</span>
+    text <span class="token operator">=</span> <span class="token string">'Hello %s!'</span> <span class="token operator">%</span> request<span class="token punctuation">.</span>args<span class="token punctuation">.</span>get<span class="token punctuation">(</span><span class="token string">'name'</span><span class="token punctuation">,</span> <span class="token string">'World'</span><span class="token punctuation">)</span>
+    response <span class="token operator">=</span> Response<span class="token punctuation">(</span>text<span class="token punctuation">,</span> mimetype<span class="token operator">=</span><span class="token string">'text/plain'</span><span class="token punctuation">)</span>
+    <span class="token keyword">return</span> response<span class="token punctuation">(</span>environ<span class="token punctuation">,</span> start_response<span class="token punctuation">)</span>
+</pre><p><code>werkzeug</code>可以看做是一个web框架底层的工具集，非常灵活。下面是一个最简单的使用例子：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">from</span> werkzeug<span class="token punctuation">.</span>wrappers <span class="token keyword">import</span> Request<span class="token punctuation">,</span> Response
+
+@Request<span class="token punctuation">.</span>application
+<span class="token keyword">def</span> <span class="token function">application</span><span class="token punctuation">(</span>request<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">return</span> Response<span class="token punctuation">(</span><span class="token string">'Hello, World!'</span><span class="token punctuation">)</span>
+
+<span class="token keyword">if</span> __name__ <span class="token operator">==</span> <span class="token string">'__main__'</span><span class="token punctuation">:</span>
+    <span class="token keyword">from</span> werkzeug<span class="token punctuation">.</span>serving <span class="token keyword">import</span> run_simple
+    run_simple<span class="token punctuation">(</span><span class="token string">'localhost'</span><span class="token punctuation">,</span> <span class="token number">4000</span><span class="token punctuation">,</span> application<span class="token punctuation">)</span>
+</pre><p>看起来与<code>python</code>标准包中提供的<code>simple_server</code>非常相似，实际上二者的实现机理也是类似的。在<code>werkzeug</code>底层，通过<code>ThreadedWSGIServer</code>与<code>ForkingWSGIServer</code>这两个类实现多线程或者多进程处理请求服务器，这两个类继承自<code>BaseWSGIServer</code>，而<code>BaseWSGIServer</code>的父类也是上文中介绍过的<code>HTTPServer</code>。<br>
+值得一提的是，<code>werkzeug</code>在<code>BaseWSGIServer</code>中提供了<code>ssl</code>的支持：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">if</span> ssl_context <span class="token keyword">is</span> <span class="token operator">not</span> <span class="token boolean">None</span><span class="token punctuation">:</span>
+    <span class="token keyword">if</span> <span class="token builtin">isinstance</span><span class="token punctuation">(</span>ssl_context<span class="token punctuation">,</span> <span class="token builtin">tuple</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        ssl_context <span class="token operator">=</span> load_ssl_context<span class="token punctuation">(</span><span class="token operator">*</span>ssl_context<span class="token punctuation">)</span>
+    <span class="token keyword">if</span> ssl_context <span class="token operator">==</span> <span class="token string">'adhoc'</span><span class="token punctuation">:</span>
+        ssl_context <span class="token operator">=</span> generate_adhoc_ssl_context<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token comment"># If we are on Python 2 the return value from socket.fromfd</span>
+    <span class="token comment"># is an internal socket object but what we need for ssl wrap</span>
+    <span class="token comment"># is the wrapper around it :(</span>
+    sock <span class="token operator">=</span> self<span class="token punctuation">.</span>socket
+    <span class="token keyword">if</span> PY2 <span class="token operator">and</span> <span class="token operator">not</span> <span class="token builtin">isinstance</span><span class="token punctuation">(</span>sock<span class="token punctuation">,</span> socket<span class="token punctuation">.</span>socket<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        sock <span class="token operator">=</span> socket<span class="token punctuation">.</span>socket<span class="token punctuation">(</span>sock<span class="token punctuation">.</span>family<span class="token punctuation">,</span> sock<span class="token punctuation">.</span><span class="token builtin">type</span><span class="token punctuation">,</span> sock<span class="token punctuation">.</span>proto<span class="token punctuation">,</span> sock<span class="token punctuation">)</span>
+    self<span class="token punctuation">.</span>socket <span class="token operator">=</span> ssl_context<span class="token punctuation">.</span>wrap_socket<span class="token punctuation">(</span>sock<span class="token punctuation">,</span> server_side<span class="token operator">=</span><span class="token boolean">True</span><span class="token punctuation">)</span>
+    self<span class="token punctuation">.</span>ssl_context <span class="token operator">=</span> ssl_context
+<span class="token keyword">else</span><span class="token punctuation">:</span>
+    self<span class="token punctuation">.</span>ssl_context <span class="token operator">=</span> <span class="token boolean">None</span>
+</pre><h5 class="mume-header" id="uwsgi%E4%B8%8Euwsgi%E9%AB%98%E6%80%A7%E8%83%BD%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%8Euwsgi%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%8B%AC%E5%8D%A0%E5%8D%8F%E8%AE%AE">uWSGI与uwsgi：高性能服务器与uWSGI服务器独占协议</h5>
+
+<p>上文中提到的，无论是标准库中的默认实现，还是<code>werkzeug</code>，均为调试开发的服务器。<code>flask</code>文档中明确建议，不应该在生产环境中使用：</p>
+<blockquote>
+<p>The development server is not intended to be used on production systems. It was designed especially for development purposes and performs poorly under high load.</p>
+</blockquote>
+<p>由于<code>werkzeug</code>及标准库中的默认实现，均不是为生产环境所设计，它们在高负载的情况下，表现会非常差。无论是<code>apache</code>还是<code>nginx</code>，在性能方面都做了许多工作，这并不是一个简单的多线程或者多进程就可以相媲美的（比如在安全性，内存优化等方面都有所差距）。所以我们还需要高性能的生产环境的web服务器。<code>uwsgi</code>就是这么一个东西。</p>
+<p>而<code>uwsgi</code>，简单的来说是一个<code>uWSGI</code>服务器自有的协议，它用于定义传输信息的类型（type of information），每一个<code>uwsgi packet</code>前<strong>4byte</strong>为传输信息类型描述。至于为什么需要这个东西，网上找到一些<a href="https://www.zhihu.com/question/46945479">讨论</a>：</p>
+<blockquote>
+<p>WSGI是一种编程接口，而uwsgi是一种传输协议，从作用上来讲，的确跟fastcgi是最接近的。跟fastcgi的区别在于它是面向多并发的。我们知道fastcgi是CGI的替代品，它的工作方式仍然跟CGI是类似的，当一个请求进入的时候，通过socket发送请求的环境变量，然后发送POST数据（相当于CGI的stdin），然后等待程序输出（相当于CGI的stdout），等输出结束后，再发送下一个请求。这就导致fastcgi最大的并发量被限制为fastcgi后端的数量，显然这样的服务器模式对于并发量很大、单个请求耗时比较长的服务是不合适的，因此很多时候我们不愿意使用fastcgi部属而是使用反向代理的方式配置。但是跟反向代理比起来，fastcgi显然也是有好处的，最重要的好处在于解析HTTP协议的部分被offload到了前端服务器一级，后端服务器不再解析HTTP协议，这样就减轻了后端的压力，由于前端是nginx这样用C/C++高性能实现的服务器，比起在后端的Python当中使用脚本语言解析HTTP协议，效率要高不少。uwsgi想要继承fastcgi的这种好处，它通过将消息分片的方式，可以在一个socket上并发传输多个请求，这样就解决了一个连接上一次只能传输一个请求的问题。熟悉HTTP2.0的话会发现这个分片机制跟HTTP2.0很像</p>
+</blockquote>
+<h2 class="mume-header" id="flask%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B">Flask启动流程</h2>
+
+<p><code>flask</code>的hello word代码：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">from</span> flask <span class="token keyword">import</span> Flask
+app <span class="token operator">=</span> Flask<span class="token punctuation">(</span>__name__<span class="token punctuation">)</span>
+
+@app<span class="token punctuation">.</span>route<span class="token punctuation">(</span><span class="token string">'/'</span><span class="token punctuation">)</span>
+<span class="token keyword">def</span> <span class="token function">hello_world</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">return</span> <span class="token string">'Hello, World!'</span>
+
+<span class="token keyword">if</span> __name__ <span class="token operator">==</span> <span class="token string">'__main__'</span><span class="token punctuation">:</span>
+    app<span class="token punctuation">.</span>run<span class="token punctuation">(</span><span class="token punctuation">)</span>
+</pre><p><code>app.run()</code>内部：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">def</span> <span class="token function">run</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> host<span class="token operator">=</span><span class="token boolean">None</span><span class="token punctuation">,</span> port<span class="token operator">=</span><span class="token boolean">None</span><span class="token punctuation">,</span> debug<span class="token operator">=</span><span class="token boolean">None</span><span class="token punctuation">,</span> <span class="token operator">**</span>options<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token triple-quoted-string string">"""Runs the application on a local development server."""</span>
+    <span class="token keyword">from</span> werkzeug<span class="token punctuation">.</span>serving <span class="token keyword">import</span> run_simple
+
+    <span class="token comment"># 如果host 和 port 没有指定，设置 host 和 port 的默认值 127.0.0.1 和 5000</span>
+    <span class="token keyword">if</span> host <span class="token keyword">is</span> <span class="token boolean">None</span><span class="token punctuation">:</span>
+        host <span class="token operator">=</span> <span class="token string">'127.0.0.1'</span>
+    <span class="token keyword">if</span> port <span class="token keyword">is</span> <span class="token boolean">None</span><span class="token punctuation">:</span>
+        server_name <span class="token operator">=</span> self<span class="token punctuation">.</span>config<span class="token punctuation">[</span><span class="token string">'SERVER_NAME'</span><span class="token punctuation">]</span>
+        <span class="token keyword">if</span> server_name <span class="token operator">and</span> <span class="token string">':'</span> <span class="token keyword">in</span> server_name<span class="token punctuation">:</span>
+            port <span class="token operator">=</span> <span class="token builtin">int</span><span class="token punctuation">(</span>server_name<span class="token punctuation">.</span>rsplit<span class="token punctuation">(</span><span class="token string">':'</span><span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+        <span class="token keyword">else</span><span class="token punctuation">:</span>
+            port <span class="token operator">=</span> <span class="token number">5000</span>
+
+    <span class="token comment"># 调用 werkzeug.serving 模块的 run_simple 函数，传入收到的参数</span>
+    <span class="token comment"># 注意第三个参数传进去的是 self，也就是要执行的 web application</span>
+    <span class="token keyword">try</span><span class="token punctuation">:</span>
+        run_simple<span class="token punctuation">(</span>host<span class="token punctuation">,</span> port<span class="token punctuation">,</span> self<span class="token punctuation">,</span> <span class="token operator">**</span>options<span class="token punctuation">)</span>
+    <span class="token keyword">finally</span><span class="token punctuation">:</span>
+        self<span class="token punctuation">.</span>_got_first_request <span class="token operator">=</span> <span class="token boolean">False</span>
+</pre><p>可以看出，此处不仅做了端口及地址的配置，而且调用了上文中提到的<code>werkzeug</code>的<code>run_simple</code>函数。从而完成了服务器的启动。同时还将<code>self</code>即<code>flask</code>实例作为<code>application</code>传递了进去。</p>
+<p>根据<code>wsgi</code>协议，这个<code>application</code>实例应该是可以被调用的，并且每次请求过来，都会调用这个实例。找到app.py中的<code>__call__</code>函数：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">def</span> <span class="token function">__call__</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> environ<span class="token punctuation">,</span> start_response<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token triple-quoted-string string">"""The WSGI server calls the Flask application object as the
+    WSGI application. This calls :meth:`wsgi_app` which can be
+    wrapped to applying middleware."""</span>
+    <span class="token keyword">return</span> self<span class="token punctuation">.</span>wsgi_app<span class="token punctuation">(</span>environ<span class="token punctuation">,</span> start_response<span class="token punctuation">)</span>
+    
+<span class="token keyword">def</span> <span class="token function">wsgi_app</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> environ<span class="token punctuation">,</span> start_response<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    ctx <span class="token operator">=</span> self<span class="token punctuation">.</span>request_context<span class="token punctuation">(</span>environ<span class="token punctuation">)</span>
+    error <span class="token operator">=</span> <span class="token boolean">None</span>
+    <span class="token keyword">try</span><span class="token punctuation">:</span>
+        <span class="token keyword">try</span><span class="token punctuation">:</span>
+            ctx<span class="token punctuation">.</span>push<span class="token punctuation">(</span><span class="token punctuation">)</span>
+            response <span class="token operator">=</span> self<span class="token punctuation">.</span>full_dispatch_request<span class="token punctuation">(</span><span class="token punctuation">)</span>
+        <span class="token keyword">except</span> Exception <span class="token keyword">as</span> e<span class="token punctuation">:</span>
+            error <span class="token operator">=</span> e
+            response <span class="token operator">=</span> self<span class="token punctuation">.</span>handle_exception<span class="token punctuation">(</span>e<span class="token punctuation">)</span>
+        <span class="token keyword">except</span><span class="token punctuation">:</span>
+            error <span class="token operator">=</span> sys<span class="token punctuation">.</span>exc_info<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span>
+            <span class="token keyword">raise</span>
+        <span class="token keyword">return</span> response<span class="token punctuation">(</span>environ<span class="token punctuation">,</span> start_response<span class="token punctuation">)</span>
+    <span class="token keyword">finally</span><span class="token punctuation">:</span>
+        <span class="token keyword">if</span> self<span class="token punctuation">.</span>should_ignore_error<span class="token punctuation">(</span>error<span class="token punctuation">)</span><span class="token punctuation">:</span>
+            error <span class="token operator">=</span> <span class="token boolean">None</span>
+        ctx<span class="token punctuation">.</span>auto_pop<span class="token punctuation">(</span>error<span class="token punctuation">)</span>
+</pre><p>每次请求过来时，<code>flask</code>都会调用<code>wsgi_app</code>函数，在内部，通过外部传入的<code>env</code>参数获得<code>ctx</code>变量，执行压入操作。通过<code>full_dispatch</code>分发请求且获得响应。最后执行<code>ctx</code>的弹出操作。</p>
+<p>放过为什么要进行压入弹出操作，先看分发请求的代码<code>full_dispatch_request</code>：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">def</span> <span class="token function">full_dispatch_request</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    self<span class="token punctuation">.</span>try_trigger_before_first_request_functions<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token keyword">try</span><span class="token punctuation">:</span>
+        request_started<span class="token punctuation">.</span>send<span class="token punctuation">(</span>self<span class="token punctuation">)</span>
+        rv <span class="token operator">=</span> self<span class="token punctuation">.</span>preprocess_request<span class="token punctuation">(</span><span class="token punctuation">)</span>
+        <span class="token keyword">if</span> rv <span class="token keyword">is</span> <span class="token boolean">None</span><span class="token punctuation">:</span>
+            rv <span class="token operator">=</span> self<span class="token punctuation">.</span>dispatch_request<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token keyword">except</span> Exception <span class="token keyword">as</span> e<span class="token punctuation">:</span>
+        rv <span class="token operator">=</span> self<span class="token punctuation">.</span>handle_user_exception<span class="token punctuation">(</span>e<span class="token punctuation">)</span>
+    <span class="token keyword">return</span> self<span class="token punctuation">.</span>finalize_request<span class="token punctuation">(</span>rv<span class="token punctuation">)</span>
+    
+<span class="token keyword">def</span> <span class="token function">dispatch_request</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    req <span class="token operator">=</span> _request_ctx_stack<span class="token punctuation">.</span>top<span class="token punctuation">.</span>request
+    <span class="token keyword">if</span> req<span class="token punctuation">.</span>routing_exception <span class="token keyword">is</span> <span class="token operator">not</span> <span class="token boolean">None</span><span class="token punctuation">:</span>
+        self<span class="token punctuation">.</span>raise_routing_exception<span class="token punctuation">(</span>req<span class="token punctuation">)</span>
+    rule <span class="token operator">=</span> req<span class="token punctuation">.</span>url_rule
+    <span class="token comment"># if we provide automatic options for this URL and the</span>
+    <span class="token comment"># request came with the OPTIONS method, reply automatically</span>
+    <span class="token keyword">if</span> <span class="token builtin">getattr</span><span class="token punctuation">(</span>rule<span class="token punctuation">,</span> <span class="token string">'provide_automatic_options'</span><span class="token punctuation">,</span> <span class="token boolean">False</span><span class="token punctuation">)</span> \
+       <span class="token operator">and</span> req<span class="token punctuation">.</span>method <span class="token operator">==</span> <span class="token string">'OPTIONS'</span><span class="token punctuation">:</span>
+        <span class="token keyword">return</span> self<span class="token punctuation">.</span>make_default_options_response<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token comment"># otherwise dispatch to the handler for that endpoint</span>
+    <span class="token keyword">return</span> self<span class="token punctuation">.</span>view_functions<span class="token punctuation">[</span>rule<span class="token punctuation">.</span>endpoint<span class="token punctuation">]</span><span class="token punctuation">(</span><span class="token operator">**</span>req<span class="token punctuation">.</span>view_args<span class="token punctuation">)</span>    
+</pre><p>忽略一些细节及错误处理的代码，可以看到最终通过<code>dispatch_request</code>这个方法中获取<code>url</code>对应的视图函数并调用获得最终的响应。</p>
+<h2 class="mume-header" id="flask%E8%B7%AF%E7%94%B1%E5%AE%9E%E7%8E%B0">Flask路由实现</h2>
+
+<p>官方文档中提供的示例程序<code>hello world</code>是通过<code>python</code>中的装饰器来实现的，其本质是调用了<code>add_url_rule</code>这个方法：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">def</span> <span class="token function">add_url_rule</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> rule<span class="token punctuation">,</span> endpoint<span class="token operator">=</span><span class="token boolean">None</span><span class="token punctuation">,</span> view_func<span class="token operator">=</span><span class="token boolean">None</span><span class="token punctuation">,</span>
+                    provide_automatic_options<span class="token operator">=</span><span class="token boolean">None</span><span class="token punctuation">,</span> <span class="token operator">**</span>options<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">if</span> endpoint <span class="token keyword">is</span> <span class="token boolean">None</span><span class="token punctuation">:</span>
+        endpoint <span class="token operator">=</span> _endpoint_from_view_func<span class="token punctuation">(</span>view_func<span class="token punctuation">)</span>
+    options<span class="token punctuation">[</span><span class="token string">'endpoint'</span><span class="token punctuation">]</span> <span class="token operator">=</span> endpoint
+    methods <span class="token operator">=</span> options<span class="token punctuation">.</span>pop<span class="token punctuation">(</span><span class="token string">'methods'</span><span class="token punctuation">,</span> <span class="token boolean">None</span><span class="token punctuation">)</span>
+        
+        <span class="token comment"># ... 删除了一些不相关的逻辑代码</span>
+        
+    rule <span class="token operator">=</span> self<span class="token punctuation">.</span>url_rule_class<span class="token punctuation">(</span>rule<span class="token punctuation">,</span> methods<span class="token operator">=</span>methods<span class="token punctuation">,</span> <span class="token operator">**</span>options<span class="token punctuation">)</span>
+    
+    self<span class="token punctuation">.</span>url_map<span class="token punctuation">.</span>add<span class="token punctuation">(</span>rule<span class="token punctuation">)</span>
+    <span class="token keyword">if</span> view_func <span class="token keyword">is</span> <span class="token operator">not</span> <span class="token boolean">None</span><span class="token punctuation">:</span>
+        old_func <span class="token operator">=</span> self<span class="token punctuation">.</span>view_functions<span class="token punctuation">.</span>get<span class="token punctuation">(</span>endpoint<span class="token punctuation">)</span>
+        <span class="token keyword">if</span> old_func <span class="token keyword">is</span> <span class="token operator">not</span> <span class="token boolean">None</span> <span class="token operator">and</span> old_func <span class="token operator">!=</span> view_func<span class="token punctuation">:</span>
+            <span class="token keyword">raise</span> AssertionError<span class="token punctuation">(</span><span class="token string">'View function mapping is overwriting an '</span>
+                                    <span class="token string">'existing endpoint function: %s'</span> <span class="token operator">%</span> endpoint<span class="token punctuation">)</span>
+        self<span class="token punctuation">.</span>view_functions<span class="token punctuation">[</span>endpoint<span class="token punctuation">]</span> <span class="token operator">=</span> view_func
+</pre><p>可以看到有几个比较关键的逻辑：</p>
+<ol>
+<li>获取<code>endpoint</code></li>
+<li>获取<code>rule</code>并绑定到<code>self.url_map</code>上</li>
+<li>获取<code>view_func</code>并绑定的<code>self.view_functions</code>上</li>
+</ol>
+<p>根据文档中的说明:</p>
+<pre data-role="codeBlock" data-info="python" class="language-python">Basically this example<span class="token punctuation">:</span><span class="token punctuation">:</span>
+
+    @app<span class="token punctuation">.</span>route<span class="token punctuation">(</span><span class="token string">'/'</span><span class="token punctuation">)</span>
+    <span class="token keyword">def</span> <span class="token function">index</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">pass</span>
+
+Is equivalent to the following<span class="token punctuation">:</span><span class="token punctuation">:</span>
+
+    <span class="token keyword">def</span> <span class="token function">index</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">pass</span>
+    app<span class="token punctuation">.</span>add_url_rule<span class="token punctuation">(</span><span class="token string">'/'</span><span class="token punctuation">,</span> <span class="token string">'index'</span><span class="token punctuation">,</span> index<span class="token punctuation">)</span>
+</pre><p>可以得知，<code>endpoint</code>为规则映射函数的函数名，<code>view_func</code>就是映射函数。于是上部分代码中的<code>_endpoint_from_view_func(view_func)</code>应当就是获取<code>view_func</code>的函数名：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">def</span> <span class="token function">_endpoint_from_view_func</span><span class="token punctuation">(</span>view_func<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">assert</span> view_func <span class="token keyword">is</span> <span class="token operator">not</span> <span class="token boolean">None</span><span class="token punctuation">,</span> <span class="token string">'expected view func if endpoint '</span> \
+                                  <span class="token string">'is not provided.'</span>
+    <span class="token keyword">return</span> view_func<span class="token punctuation">.</span>__name__
+</pre><p><code>self.url_map</code>是继承自<code>flask</code>实例中的<code>map</code>实例（继承自<code>werkzeug:Rule</code>类）。可见<code>flask</code>中的路由功能是<code>werkzeug</code>来实现的。放一段<code>werkzeug</code>文档中关于路由匹配的代码:</p>
+<pre data-role="codeBlock" data-info="python" class="language-python">
+<span class="token operator">>></span><span class="token operator">>></span>  m <span class="token operator">=</span> Map<span class="token punctuation">(</span><span class="token punctuation">[</span>
+<span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>     Rule<span class="token punctuation">(</span><span class="token string">'/'</span><span class="token punctuation">,</span> endpoint<span class="token operator">=</span><span class="token string">'index'</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+<span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>     Rule<span class="token punctuation">(</span><span class="token string">'/downloads/'</span><span class="token punctuation">,</span> endpoint<span class="token operator">=</span><span class="token string">'downloads/index'</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+<span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>     Rule<span class="token punctuation">(</span><span class="token string">'/downloads/&lt;int:id>'</span><span class="token punctuation">,</span> endpoint<span class="token operator">=</span><span class="token string">'downloads/show'</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span> <span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token operator">>></span><span class="token operator">></span> urls <span class="token operator">=</span> m<span class="token punctuation">.</span>bind<span class="token punctuation">(</span><span class="token string">"example.com"</span><span class="token punctuation">,</span> <span class="token string">"/"</span><span class="token punctuation">)</span>
+<span class="token operator">>></span><span class="token operator">></span> urls<span class="token punctuation">.</span>match<span class="token punctuation">(</span><span class="token string">"/"</span><span class="token punctuation">,</span> <span class="token string">"GET"</span><span class="token punctuation">)</span>
+<span class="token punctuation">(</span><span class="token string">'index'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">)</span>
+<span class="token operator">>></span><span class="token operator">></span> urls<span class="token punctuation">.</span>match<span class="token punctuation">(</span><span class="token string">"/downloads/42"</span><span class="token punctuation">)</span>
+<span class="token punctuation">(</span><span class="token string">'downloads/show'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token string">'id'</span><span class="token punctuation">:</span> <span class="token number">42</span><span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+<span class="token operator">>></span><span class="token operator">></span> urls<span class="token punctuation">.</span>match<span class="token punctuation">(</span><span class="token string">"/downloads"</span><span class="token punctuation">)</span>
+Traceback <span class="token punctuation">(</span>most recent call last<span class="token punctuation">)</span><span class="token punctuation">:</span>
+  <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+RequestRedirect<span class="token punctuation">:</span> http<span class="token punctuation">:</span><span class="token operator">//</span>example<span class="token punctuation">.</span>com<span class="token operator">/</span>downloads<span class="token operator">/</span>
+<span class="token operator">>></span><span class="token operator">></span> urls<span class="token punctuation">.</span>match<span class="token punctuation">(</span><span class="token string">"/missing"</span><span class="token punctuation">)</span>
+Traceback <span class="token punctuation">(</span>most recent call last<span class="token punctuation">)</span><span class="token punctuation">:</span>
+  <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+NotFound<span class="token punctuation">:</span> <span class="token number">404</span> Not Found
+</pre><p>可见<code>flask</code>利用<code>werkzeug</code>的路由功能，现实了获取请求URL中部分信息及绑定到<code>endpoint</code>的功能。<br>
+同时，<code>flask</code>将<code>endpoint</code>与<code>view_func</code>保存在实例中的一个字典内。</p>
+<p>到这里，我们大概能清楚路由的实现逻辑。回到<code>dispatch_request</code>：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">def</span> <span class="token function">dispatch_request</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    req <span class="token operator">=</span> _request_ctx_stack<span class="token punctuation">.</span>top<span class="token punctuation">.</span>request
+    <span class="token keyword">if</span> req<span class="token punctuation">.</span>routing_exception <span class="token keyword">is</span> <span class="token operator">not</span> <span class="token boolean">None</span><span class="token punctuation">:</span>
+        self<span class="token punctuation">.</span>raise_routing_exception<span class="token punctuation">(</span>req<span class="token punctuation">)</span>
+    rule <span class="token operator">=</span> req<span class="token punctuation">.</span>url_rule
+    <span class="token comment"># if we provide automatic options for this URL and the</span>
+    <span class="token comment"># request came with the OPTIONS method, reply automatically</span>
+    <span class="token keyword">if</span> <span class="token builtin">getattr</span><span class="token punctuation">(</span>rule<span class="token punctuation">,</span> <span class="token string">'provide_automatic_options'</span><span class="token punctuation">,</span> <span class="token boolean">False</span><span class="token punctuation">)</span> \
+       <span class="token operator">and</span> req<span class="token punctuation">.</span>method <span class="token operator">==</span> <span class="token string">'OPTIONS'</span><span class="token punctuation">:</span>
+        <span class="token keyword">return</span> self<span class="token punctuation">.</span>make_default_options_response<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token comment"># otherwise dispatch to the handler for that endpoint</span>
+    <span class="token keyword">return</span> self<span class="token punctuation">.</span>view_functions<span class="token punctuation">[</span>rule<span class="token punctuation">.</span>endpoint<span class="token punctuation">]</span><span class="token punctuation">(</span><span class="token operator">**</span>req<span class="token punctuation">.</span>view_args<span class="token punctuation">)</span>    
+</pre><p>根据上文，可以得以解释为什么可以从<code>view_fucntions</code>中通过<code>endpoint</code>获取视图函数。唯一的疑问就是为什么可以从<code>req</code>中获取<code>rule</code>，且<code>rule</code>中的<code>point</code>是什么时候绑定上去的？</p>
+<p>因为已经知道<code>werkzeug</code>中实现了通过URL获取<code>endpoint</code>的功能，我们可以猜想此处的<code>req</code>很可能是对<code>werkzeug</code>相关功能的封装。</p>
+<p>抛开为什么要从<code>_request_ctx_stack.top</code>获取<code>req</code>，着重于此处的<code>req</code>。</p>
+<p>之前提到过，<code>WSGI</code>协议规定，<code>application</code>实例需要实现<code>__call__</code>方法，下面这个<code>wsgi_app</code>方法就是<code>flask</code>实例<code>__call__</code>方法内部调用的一个方法。</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">def</span> <span class="token function">wsgi_app</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> environ<span class="token punctuation">,</span> start_response<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    ctx <span class="token operator">=</span> self<span class="token punctuation">.</span>request_context<span class="token punctuation">(</span>environ<span class="token punctuation">)</span>
+    error <span class="token operator">=</span> <span class="token boolean">None</span>
+    <span class="token keyword">try</span><span class="token punctuation">:</span>
+        <span class="token keyword">try</span><span class="token punctuation">:</span>
+            ctx<span class="token punctuation">.</span>push<span class="token punctuation">(</span><span class="token punctuation">)</span>
+            response <span class="token operator">=</span> self<span class="token punctuation">.</span>full_dispatch_request<span class="token punctuation">(</span><span class="token punctuation">)</span>
+        <span class="token keyword">except</span> Exception <span class="token keyword">as</span> e<span class="token punctuation">:</span>
+            error <span class="token operator">=</span> e
+            response <span class="token operator">=</span> self<span class="token punctuation">.</span>handle_exception<span class="token punctuation">(</span>e<span class="token punctuation">)</span>
+        <span class="token keyword">except</span><span class="token punctuation">:</span>
+            error <span class="token operator">=</span> sys<span class="token punctuation">.</span>exc_info<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span>
+            <span class="token keyword">raise</span>
+        <span class="token keyword">return</span> response<span class="token punctuation">(</span>environ<span class="token punctuation">,</span> start_response<span class="token punctuation">)</span>
+    <span class="token keyword">finally</span><span class="token punctuation">:</span>
+        <span class="token keyword">if</span> self<span class="token punctuation">.</span>should_ignore_error<span class="token punctuation">(</span>error<span class="token punctuation">)</span><span class="token punctuation">:</span>
+            error <span class="token operator">=</span> <span class="token boolean">None</span>
+        ctx<span class="token punctuation">.</span>auto_pop<span class="token punctuation">(</span>error<span class="token punctuation">)</span>
+</pre><p>注意：</p>
+<ol>
+<li><code>ctx = self.request_context(environ)</code></li>
+<li><code>ctx.push()</code></li>
+</ol>
+<p>第一个就是构造<code>req</code>所在。查找相关的方法可以得知，此处构造了一个<code>class RequestContext(object):</code>实例。<br>
+在此实例的对象方法中：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">def</span> <span class="token function">__init__</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> app<span class="token punctuation">,</span> environ<span class="token punctuation">,</span> request<span class="token operator">=</span><span class="token boolean">None</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    self<span class="token punctuation">.</span>app <span class="token operator">=</span> app
+    <span class="token keyword">if</span> request <span class="token keyword">is</span> <span class="token boolean">None</span><span class="token punctuation">:</span>
+        request <span class="token operator">=</span> app<span class="token punctuation">.</span>request_class<span class="token punctuation">(</span>environ<span class="token punctuation">)</span>
+    self<span class="token punctuation">.</span>request <span class="token operator">=</span> request
+    
+    <span class="token comment">#此处通过self.request将请求信息传递给url_adapter</span>
+    self<span class="token punctuation">.</span>url_adapter <span class="token operator">=</span> app<span class="token punctuation">.</span>create_url_adapter<span class="token punctuation">(</span>self<span class="token punctuation">.</span>request<span class="token punctuation">)</span>
+    
+    self<span class="token punctuation">.</span>flashes <span class="token operator">=</span> <span class="token boolean">None</span>
+    self<span class="token punctuation">.</span>session <span class="token operator">=</span> <span class="token boolean">None</span>
+    self<span class="token punctuation">.</span>_implicit_app_ctx_stack <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>
+    self<span class="token punctuation">.</span>preserved <span class="token operator">=</span> <span class="token boolean">False</span>
+    self<span class="token punctuation">.</span>_preserved_exc <span class="token operator">=</span> <span class="token boolean">None</span>
+    self<span class="token punctuation">.</span>_after_request_functions <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>
+
+  	 <span class="token comment">#注意此处，开始匹配url</span>
+    self<span class="token punctuation">.</span>match_request<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    
+<span class="token keyword">def</span> <span class="token function">match_request</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token triple-quoted-string string">"""Can be overridden by a subclass to hook into the matching
+    of the request.
+    """</span>
+    <span class="token keyword">try</span><span class="token punctuation">:</span>
+        url_rule<span class="token punctuation">,</span> self<span class="token punctuation">.</span>request<span class="token punctuation">.</span>view_args <span class="token operator">=</span> \
+            self<span class="token punctuation">.</span>url_adapter<span class="token punctuation">.</span>match<span class="token punctuation">(</span>return_rule<span class="token operator">=</span><span class="token boolean">True</span><span class="token punctuation">)</span>
+        self<span class="token punctuation">.</span>request<span class="token punctuation">.</span>url_rule <span class="token operator">=</span> url_rule
+    <span class="token keyword">except</span> HTTPException <span class="token keyword">as</span> e<span class="token punctuation">:</span>
+        self<span class="token punctuation">.</span>request<span class="token punctuation">.</span>routing_exception <span class="token operator">=</span> e
+</pre><p>可见在构造<code>req</code>实例的时候，先将实际的请求传递给了<code>slef.url_adapter</code>，之后调用了<code>match_reqeust</code>这个方法。在内部通过<code>url_adapter</code>进行了匹配，获得了此前注册好的<code>endpoint</code>。</p>
+<p>此处的<code>url_adapter</code>是通过<code>flask</code>实例中<code>url_map</code>(<code>werkzeug:Map</code>)的<code>bind</code>方法创建出来的，是<code>werkzeug:MapAdapter</code>实例。</p>
+<p>至此，抛开为什么要进行请求的压入弹出操作，我们已经了解了<code>flask</code>的路由过程：</p>
+<ol>
+<li>通过<code>werkzeug</code>提供的URL匹配功能，将<code>endpoint</code>和视图函数绑定起来。</li>
+<li>请求到来时，通过<code>werkzeug</code>的匹配功能，取出URL对应的<code>endpoint</code>。之后通过此<code>endpoint</code>取出对应的视图函数。</li>
+</ol>
+<h2 class="mume-header" id="flask%E5%AE%9E%E4%BE%8B%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8F%8A%E8%AF%B7%E6%B1%82%E4%B8%8A%E4%B8%8B%E6%96%87">Flask实例上下文及请求上下文</h2>
+
+<p><code>flask</code>中有两种上下文，分别是请求上下文及<code>app</code>上下文，两种上下文提供了线程隔离的访问。具体实现在gloabs.py文件中：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token comment"># context locals</span>
+_request_ctx_stack <span class="token operator">=</span> LocalStack<span class="token punctuation">(</span><span class="token punctuation">)</span>
+_app_ctx_stack <span class="token operator">=</span> LocalStack<span class="token punctuation">(</span><span class="token punctuation">)</span>
+current_app <span class="token operator">=</span> LocalProxy<span class="token punctuation">(</span>_find_app<span class="token punctuation">)</span>
+request <span class="token operator">=</span> LocalProxy<span class="token punctuation">(</span>partial<span class="token punctuation">(</span>_lookup_req_object<span class="token punctuation">,</span> <span class="token string">'request'</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+session <span class="token operator">=</span> LocalProxy<span class="token punctuation">(</span>partial<span class="token punctuation">(</span>_lookup_req_object<span class="token punctuation">,</span> <span class="token string">'session'</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+g <span class="token operator">=</span> LocalProxy<span class="token punctuation">(</span>partial<span class="token punctuation">(</span>_lookup_app_object<span class="token punctuation">,</span> <span class="token string">'g'</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+</pre><p>其中<code>LocalStack</code>是一个线程安全的堆栈数据结构。是<code>werkzeug</code>框架提供的：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">class</span> <span class="token class-name">LocalStack</span><span class="token punctuation">(</span><span class="token builtin">object</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">__init__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        self<span class="token punctuation">.</span>_local <span class="token operator">=</span> Local<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+    <span class="token keyword">def</span> <span class="token function">__release_local__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        self<span class="token punctuation">.</span>_local<span class="token punctuation">.</span>__release_local__<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+    <span class="token keyword">def</span> <span class="token function">_get__ident_func__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">return</span> self<span class="token punctuation">.</span>_local<span class="token punctuation">.</span>__ident_func__
+
+    <span class="token keyword">def</span> <span class="token function">_set__ident_func__</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> value<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token builtin">object</span><span class="token punctuation">.</span>__setattr__<span class="token punctuation">(</span>self<span class="token punctuation">.</span>_local<span class="token punctuation">,</span> <span class="token string">'__ident_func__'</span><span class="token punctuation">,</span> value<span class="token punctuation">)</span>
+    __ident_func__ <span class="token operator">=</span> <span class="token builtin">property</span><span class="token punctuation">(</span>_get__ident_func__<span class="token punctuation">,</span> _set__ident_func__<span class="token punctuation">)</span>
+    <span class="token keyword">del</span> _get__ident_func__<span class="token punctuation">,</span> _set__ident_func__
+
+    <span class="token keyword">def</span> <span class="token function">__call__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">def</span> <span class="token function">_lookup</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+            rv <span class="token operator">=</span> self<span class="token punctuation">.</span>top
+            <span class="token keyword">if</span> rv <span class="token keyword">is</span> <span class="token boolean">None</span><span class="token punctuation">:</span>
+                <span class="token keyword">raise</span> RuntimeError<span class="token punctuation">(</span><span class="token string">'object unbound'</span><span class="token punctuation">)</span>
+            <span class="token keyword">return</span> rv
+        <span class="token keyword">return</span> LocalProxy<span class="token punctuation">(</span>_lookup<span class="token punctuation">)</span>
+
+    <span class="token keyword">def</span> <span class="token function">push</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> obj<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        rv <span class="token operator">=</span> <span class="token builtin">getattr</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>_local<span class="token punctuation">,</span> <span class="token string">'stack'</span><span class="token punctuation">,</span> <span class="token boolean">None</span><span class="token punctuation">)</span>
+        <span class="token keyword">if</span> rv <span class="token keyword">is</span> <span class="token boolean">None</span><span class="token punctuation">:</span>
+            self<span class="token punctuation">.</span>_local<span class="token punctuation">.</span>stack <span class="token operator">=</span> rv <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>
+        rv<span class="token punctuation">.</span>append<span class="token punctuation">(</span>obj<span class="token punctuation">)</span>
+        <span class="token keyword">return</span> rv
+
+    <span class="token keyword">def</span> <span class="token function">pop</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        stack <span class="token operator">=</span> <span class="token builtin">getattr</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>_local<span class="token punctuation">,</span> <span class="token string">'stack'</span><span class="token punctuation">,</span> <span class="token boolean">None</span><span class="token punctuation">)</span>
+        <span class="token keyword">if</span> stack <span class="token keyword">is</span> <span class="token boolean">None</span><span class="token punctuation">:</span>
+            <span class="token keyword">return</span> <span class="token boolean">None</span>
+        <span class="token keyword">elif</span> <span class="token builtin">len</span><span class="token punctuation">(</span>stack<span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token number">1</span><span class="token punctuation">:</span>
+            release_local<span class="token punctuation">(</span>self<span class="token punctuation">.</span>_local<span class="token punctuation">)</span>
+            <span class="token keyword">return</span> stack<span class="token punctuation">[</span><span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">]</span>
+        <span class="token keyword">else</span><span class="token punctuation">:</span>
+            <span class="token keyword">return</span> stack<span class="token punctuation">.</span>pop<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+    @<span class="token builtin">property</span>
+    <span class="token keyword">def</span> <span class="token function">top</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">try</span><span class="token punctuation">:</span>
+            <span class="token keyword">return</span> self<span class="token punctuation">.</span>_local<span class="token punctuation">.</span>stack<span class="token punctuation">[</span><span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">]</span>
+        <span class="token keyword">except</span> <span class="token punctuation">(</span>AttributeError<span class="token punctuation">,</span> IndexError<span class="token punctuation">)</span><span class="token punctuation">:</span>
+            <span class="token keyword">return</span> <span class="token boolean">None</span>
+
+</pre><p>代码很精简，其原理就是利用<code>Local</code>实现线程隔离。而<code>Local</code>类内部是通过以线程的id为键，map为值的字典：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">class</span> <span class="token class-name">Local</span><span class="token punctuation">(</span><span class="token builtin">object</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    __slots__ <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token string">'__storage__'</span><span class="token punctuation">,</span> <span class="token string">'__ident_func__'</span><span class="token punctuation">)</span>
+
+    <span class="token keyword">def</span> <span class="token function">__init__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token builtin">object</span><span class="token punctuation">.</span>__setattr__<span class="token punctuation">(</span>self<span class="token punctuation">,</span> <span class="token string">'__storage__'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">)</span>
+        <span class="token builtin">object</span><span class="token punctuation">.</span>__setattr__<span class="token punctuation">(</span>self<span class="token punctuation">,</span> <span class="token string">'__ident_func__'</span><span class="token punctuation">,</span> get_ident<span class="token punctuation">)</span>
+
+    <span class="token keyword">def</span> <span class="token function">__iter__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">return</span> <span class="token builtin">iter</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>__storage__<span class="token punctuation">.</span>items<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+    <span class="token keyword">def</span> <span class="token function">__call__</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> proxy<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token triple-quoted-string string">"""Create a proxy for a name."""</span>
+        <span class="token keyword">return</span> LocalProxy<span class="token punctuation">(</span>self<span class="token punctuation">,</span> proxy<span class="token punctuation">)</span>
+
+    <span class="token keyword">def</span> <span class="token function">__release_local__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        self<span class="token punctuation">.</span>__storage__<span class="token punctuation">.</span>pop<span class="token punctuation">(</span>self<span class="token punctuation">.</span>__ident_func__<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token boolean">None</span><span class="token punctuation">)</span>
+
+    <span class="token comment"># 无论是设置还是删除，都会通过self.__storage__先获取当前</span>
+    <span class="token comment"># 线程的id对应的map，然后在再设置属性，通过这样的手段来获得线程隔离的效果。</span>
+    <span class="token keyword">def</span> <span class="token function">__getattr__</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> name<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">try</span><span class="token punctuation">:</span>
+            <span class="token keyword">return</span> self<span class="token punctuation">.</span>__storage__<span class="token punctuation">[</span>self<span class="token punctuation">.</span>__ident_func__<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">]</span><span class="token punctuation">[</span>name<span class="token punctuation">]</span>
+        <span class="token keyword">except</span> KeyError<span class="token punctuation">:</span>
+            <span class="token keyword">raise</span> AttributeError<span class="token punctuation">(</span>name<span class="token punctuation">)</span>
+
+    <span class="token keyword">def</span> <span class="token function">__setattr__</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> name<span class="token punctuation">,</span> value<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        ident <span class="token operator">=</span> self<span class="token punctuation">.</span>__ident_func__<span class="token punctuation">(</span><span class="token punctuation">)</span>
+        storage <span class="token operator">=</span> self<span class="token punctuation">.</span>__storage__
+        <span class="token keyword">try</span><span class="token punctuation">:</span>
+            storage<span class="token punctuation">[</span>ident<span class="token punctuation">]</span><span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">=</span> value
+        <span class="token keyword">except</span> KeyError<span class="token punctuation">:</span>
+            storage<span class="token punctuation">[</span>ident<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{</span>name<span class="token punctuation">:</span> value<span class="token punctuation">}</span>
+
+    <span class="token keyword">def</span> <span class="token function">__delattr__</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> name<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">try</span><span class="token punctuation">:</span>
+            <span class="token keyword">del</span> self<span class="token punctuation">.</span>__storage__<span class="token punctuation">[</span>self<span class="token punctuation">.</span>__ident_func__<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">]</span><span class="token punctuation">[</span>name<span class="token punctuation">]</span>
+        <span class="token keyword">except</span> KeyError<span class="token punctuation">:</span>
+            <span class="token keyword">raise</span> AttributeError<span class="token punctuation">(</span>name<span class="token punctuation">)</span>
+</pre><p>可以看到，<code>Local</code>对象内部的数据都是保存在<code>__storage__</code> 属性的，这个属性变量是个嵌套的字典：<code>map[ident]map[key]value</code>。最外面字典 <code>key</code>是线程或者协程的<code>identity</code>，<code>value</code> 是另外一个字典，这个内部字典就是用户自定义的<code>key-value</code>键值对。用户访问实例的属性，就变成了访问内部的字典，外面字典的 <code>key</code> 是自动关联的。<code>__ident_func</code> 是 协程的<code>get_current</code>或者线程的 <code>get_ident</code>，从而获取当前代码所在线程或者协程的<code>id</code>。</p>
+<p>除了这些基本操作之外，<code>Local</code>还实现了<code>__release_local__</code>，用来清空（析构）当前线程或者协程的数据（状态）。<code>__call__</code>操作来创建一个<code>LocalProxy</code>对象，</p>
+<p>解释完<code>Local</code>及<code>LocakStack</code>，再回到<code>globals.py</code>文件中，发现<code>current_app</code>定义如下:</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">def</span> <span class="token function">_find_app</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    top <span class="token operator">=</span> _app_ctx_stack<span class="token punctuation">.</span>top
+    <span class="token keyword">if</span> top <span class="token keyword">is</span> <span class="token boolean">None</span><span class="token punctuation">:</span>
+        <span class="token keyword">raise</span> RuntimeError<span class="token punctuation">(</span>_app_ctx_err_msg<span class="token punctuation">)</span>
+    <span class="token keyword">return</span> top<span class="token punctuation">.</span>app
+current_app <span class="token operator">=</span> LocalProxy<span class="token punctuation">(</span>_find_app<span class="token punctuation">)</span>
+</pre><p>其中<code>LocalProxy</code>类的定义如下：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">class</span> <span class="token class-name">LocalProxy</span><span class="token punctuation">(</span><span class="token builtin">object</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    __slots__ <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token string">'__local'</span><span class="token punctuation">,</span> <span class="token string">'__dict__'</span><span class="token punctuation">,</span> <span class="token string">'__name__'</span><span class="token punctuation">,</span> <span class="token string">'__wrapped__'</span><span class="token punctuation">)</span>
+    <span class="token keyword">def</span> <span class="token function">__init__</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> local<span class="token punctuation">,</span> name<span class="token operator">=</span><span class="token boolean">None</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token builtin">object</span><span class="token punctuation">.</span>__setattr__<span class="token punctuation">(</span>self<span class="token punctuation">,</span> <span class="token string">'_LocalProxy__local'</span><span class="token punctuation">,</span> local<span class="token punctuation">)</span>
+        <span class="token builtin">object</span><span class="token punctuation">.</span>__setattr__<span class="token punctuation">(</span>self<span class="token punctuation">,</span> <span class="token string">'__name__'</span><span class="token punctuation">,</span> name<span class="token punctuation">)</span>
+        <span class="token keyword">if</span> <span class="token builtin">callable</span><span class="token punctuation">(</span>local<span class="token punctuation">)</span> <span class="token operator">and</span> <span class="token operator">not</span> <span class="token builtin">hasattr</span><span class="token punctuation">(</span>local<span class="token punctuation">,</span> <span class="token string">'__release_local__'</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+            <span class="token builtin">object</span><span class="token punctuation">.</span>__setattr__<span class="token punctuation">(</span>self<span class="token punctuation">,</span> <span class="token string">'__wrapped__'</span><span class="token punctuation">,</span> local<span class="token punctuation">)</span>
+
+    <span class="token keyword">def</span> <span class="token function">_get_current_object</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token triple-quoted-string string">"""Return the current object.  This is useful if you want the real
+        object behind the proxy at a time for performance reasons or because
+        you want to pass the object into a different context.
+        """</span>
+        <span class="token keyword">if</span> <span class="token operator">not</span> <span class="token builtin">hasattr</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>__local<span class="token punctuation">,</span> <span class="token string">'__release_local__'</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+            <span class="token keyword">return</span> self<span class="token punctuation">.</span>__local<span class="token punctuation">(</span><span class="token punctuation">)</span>
+        <span class="token keyword">try</span><span class="token punctuation">:</span>
+            <span class="token keyword">return</span> <span class="token builtin">getattr</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>__local<span class="token punctuation">,</span> self<span class="token punctuation">.</span>__name__<span class="token punctuation">)</span>
+        <span class="token keyword">except</span> AttributeError<span class="token punctuation">:</span>
+            <span class="token keyword">raise</span> RuntimeError<span class="token punctuation">(</span><span class="token string">'no object bound to %s'</span> <span class="token operator">%</span> self<span class="token punctuation">.</span>__name__<span class="token punctuation">)</span>
+</pre><p>简单来说就是<code>LocalProxy</code>对象在构造时需要一个<code>callable</code>参数。之后的对<code>LocalProxy</code>对象的操作都会转发到<code>callable</code>参数的返回值上。</p>
+<p>至此，就可以理清楚<code>Flask</code>中的几个上下文之间的关系及具体实现：</p>
+<ol>
+<li>无论是请求上下文还是<code>app</code>上下文，均存储在线程隔离级别的栈结构中。</li>
+<li>四个常用的上下文<code>current_app</code>,<code>request</code>,<code>session</code>,<code>g</code>均是通过<code>LocalProxy</code>转发操作至对应的栈结构中取出。</li>
+</ol>
+<p><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: G Pages: 1 -->
+<svg width="387pt" height="260pt" viewBox="0.00 0.00 387.06 260.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 256)">
+<title>G</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-256 383.0557,-256 383.0557,4 -4,4"></polygon>
+<!-- 取上下文操作 -->
+<g id="node1" class="node">
+<title>取上下文操作</title>
+<ellipse fill="none" stroke="#000000" cx="63.3366" cy="-234" rx="63.1736" ry="18"></ellipse>
+<text text-anchor="middle" x="63.3366" y="-229.8" font-family="Times,serif" font-size="14.00" fill="#000000">取上下文操作</text>
+</g>
+<!-- LocalProxy -->
+<g id="node2" class="node">
+<title>LocalProxy</title>
+<ellipse fill="none" stroke="#000000" cx="63.3366" cy="-162" rx="56.1802" ry="18"></ellipse>
+<text text-anchor="middle" x="63.3366" y="-157.8" font-family="Times,serif" font-size="14.00" fill="#000000">LocalProxy</text>
+</g>
+<!-- 取上下文操作&#45;&gt;LocalProxy -->
+<g id="edge1" class="edge">
+<title>取上下文操作&#45;&gt;LocalProxy</title>
+<path fill="none" stroke="#000000" d="M63.3366,-215.8314C63.3366,-208.131 63.3366,-198.9743 63.3366,-190.4166"></path>
+<polygon fill="#000000" stroke="#000000" points="66.8367,-190.4132 63.3366,-180.4133 59.8367,-190.4133 66.8367,-190.4132"></polygon>
+</g>
+<!-- LocalStack -->
+<g id="node3" class="node">
+<title>LocalStack</title>
+<ellipse fill="none" stroke="#000000" cx="63.3366" cy="-90" rx="54.4508" ry="18"></ellipse>
+<text text-anchor="middle" x="63.3366" y="-85.8" font-family="Times,serif" font-size="14.00" fill="#000000">LocalStack</text>
+</g>
+<!-- LocalProxy&#45;&gt;LocalStack -->
+<g id="edge2" class="edge">
+<title>LocalProxy&#45;&gt;LocalStack</title>
+<path fill="none" stroke="#000000" d="M63.3366,-143.8314C63.3366,-136.131 63.3366,-126.9743 63.3366,-118.4166"></path>
+<polygon fill="#000000" stroke="#000000" points="66.8367,-118.4132 63.3366,-108.4133 59.8367,-118.4133 66.8367,-118.4132"></polygon>
+</g>
+<!-- 操作Local -->
+<g id="node4" class="node">
+<title>操作Local</title>
+<ellipse fill="none" stroke="#000000" cx="63.3366" cy="-18" rx="55.0004" ry="18"></ellipse>
+<text text-anchor="middle" x="63.3366" y="-13.8" font-family="Times,serif" font-size="14.00" fill="#000000">操作Local</text>
+</g>
+<!-- LocalStack&#45;&gt;操作Local -->
+<g id="edge3" class="edge">
+<title>LocalStack&#45;&gt;操作Local</title>
+<path fill="none" stroke="#000000" d="M63.3366,-71.8314C63.3366,-64.131 63.3366,-54.9743 63.3366,-46.4166"></path>
+<polygon fill="#000000" stroke="#000000" points="66.8367,-46.4132 63.3366,-36.4133 59.8367,-46.4133 66.8367,-46.4132"></polygon>
+</g>
+<!-- Local -->
+<g id="node5" class="node">
+<title>Local</title>
+<ellipse fill="none" stroke="#000000" cx="258.3366" cy="-234" rx="33.043" ry="18"></ellipse>
+<text text-anchor="middle" x="258.3366" y="-229.8" font-family="Times,serif" font-size="14.00" fill="#000000">Local</text>
+</g>
+<!-- 线程对应的map的stack数组 -->
+<g id="node6" class="node">
+<title>线程对应的map的stack数组</title>
+<ellipse fill="none" stroke="#000000" cx="258.3366" cy="-162" rx="120.9386" ry="18"></ellipse>
+<text text-anchor="middle" x="258.3366" y="-157.8" font-family="Times,serif" font-size="14.00" fill="#000000">线程对应的map的stack数组</text>
+</g>
+<!-- Local&#45;&gt;线程对应的map的stack数组 -->
+<g id="edge4" class="edge">
+<title>Local&#45;&gt;线程对应的map的stack数组</title>
+<path fill="none" stroke="#000000" d="M258.3366,-215.8314C258.3366,-208.131 258.3366,-198.9743 258.3366,-190.4166"></path>
+<polygon fill="#000000" stroke="#000000" points="261.8367,-190.4132 258.3366,-180.4133 254.8367,-190.4133 261.8367,-190.4132"></polygon>
+</g>
+</g>
+</svg>
+</p><p>在解释为什么需要用到<code>stack</code>及<code>proxy</code>设计模式之前，我们还需要回到之前遗留的问题上，下下文是什么时候被压入栈内的？</p>
+<p>上文提到过，WSGI协议需要一个<code>callabe</code>对象，每次请求过来都会调用这个对象来处理请求,<code>Flask</code>实例在<code>__call__</code>方法内部调用<code>wsgi_app</code>方法，进行相应的<code>ctx</code>压入操作:</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">def</span> <span class="token function">push</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    top <span class="token operator">=</span> _request_ctx_stack<span class="token punctuation">.</span>top
+    <span class="token keyword">if</span> top <span class="token keyword">is</span> <span class="token operator">not</span> <span class="token boolean">None</span> <span class="token operator">and</span> top<span class="token punctuation">.</span>preserved<span class="token punctuation">:</span>
+        top<span class="token punctuation">.</span>pop<span class="token punctuation">(</span>top<span class="token punctuation">.</span>_preserved_exc<span class="token punctuation">)</span>
+    app_ctx <span class="token operator">=</span> _app_ctx_stack<span class="token punctuation">.</span>top
+    <span class="token keyword">if</span> app_ctx <span class="token keyword">is</span> <span class="token boolean">None</span> <span class="token operator">or</span> app_ctx<span class="token punctuation">.</span>app <span class="token operator">!=</span> self<span class="token punctuation">.</span>app<span class="token punctuation">:</span>
+        app_ctx <span class="token operator">=</span> self<span class="token punctuation">.</span>app<span class="token punctuation">.</span>app_context<span class="token punctuation">(</span><span class="token punctuation">)</span>
+        app_ctx<span class="token punctuation">.</span>push<span class="token punctuation">(</span><span class="token punctuation">)</span>
+        self<span class="token punctuation">.</span>_implicit_app_ctx_stack<span class="token punctuation">.</span>append<span class="token punctuation">(</span>app_ctx<span class="token punctuation">)</span>
+    <span class="token keyword">else</span><span class="token punctuation">:</span>
+        self<span class="token punctuation">.</span>_implicit_app_ctx_stack<span class="token punctuation">.</span>append<span class="token punctuation">(</span><span class="token boolean">None</span><span class="token punctuation">)</span>
+
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+</pre><p>也就是说，<code>flask</code>实例会在每次请求过来时，都会进行一个<code>app_ctx</code>及<code>req_ctx</code>的压入操作。</p>
+<p>在了解了具体实现方式后，再来思考为什么要用stack及proxy这种设计模式。</p>
+<p>1. 为什么要使用stack这种设计模式？</p>
+<p><code>Flask</code>是允许多个实例共存的，比如：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">from</span> werkzeug<span class="token punctuation">.</span>wsgi <span class="token keyword">import</span> DispatcherMiddleware
+<span class="token keyword">from</span> frontend_app <span class="token keyword">import</span> application <span class="token keyword">as</span> frontend
+<span class="token keyword">from</span> backend_app <span class="token keyword">import</span> application <span class="token keyword">as</span> backend
+
+application <span class="token operator">=</span> DispatcherMiddleware<span class="token punctuation">(</span>frontend<span class="token punctuation">,</span> <span class="token punctuation">{</span>
+    <span class="token string">'/backend'</span><span class="token punctuation">:</span>     backend
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</pre><p>正是这个原因，导致<code>flask</code>必须设计一种机制，来保证每次请求过来时，需要能明确获得当前<code>req</code>到底是属于哪一个实例的(比如需要获得<code>req.path</code>)。<br>
+<br>
+再举个例子，<code>flask</code>提供<code>url_for</code>函数：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">from</span> flask <span class="token keyword">import</span> url_for
+</pre><p>由于<code>url_for</code>函数是强依赖于<code>current_app</code>的，以上面那个<code>frontend</code>及<code>backend</code>例子来说。<code>frontend</code>及<code>backend</code>可能都有<code>/login</code>这个路径，此时<code>url_fro</code>应该返回合适的<code>app</code>中的<code>view</code>来处理这个请求。</p>
+<ol start="2">
+<li>为什么要用<code>LocalProxy</code>？</li>
+</ol>
+<p>答案是为了更加灵活，其实仅仅靠一个栈结构是无法支持多个app共存的需求的。比如:</p>
+<pre data-role="codeBlock" data-info="python" class="language-python"><span class="token keyword">from</span> flask <span class="token keyword">import</span> current_app
+
+app <span class="token operator">=</span> create_app<span class="token punctuation">(</span><span class="token punctuation">)</span>
+admin_app <span class="token operator">=</span> create_admin_app<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token keyword">def</span> <span class="token function">do_something</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">with</span> app<span class="token punctuation">.</span>app_context<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        work_on<span class="token punctuation">(</span>current_app<span class="token punctuation">)</span>
+        <span class="token keyword">with</span> admin_app<span class="token punctuation">.</span>app_context<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+            work_on<span class="token punctuation">(</span>current_app<span class="token punctuation">)</span>
+</pre><p>我们拿<code>current_app = LocalProxy(_find_app)</code>来举例子。每次使用 <code>current_app</code>的时候，他都会调用<code>_find_app</code>函数，然后对得到的变量进行操作。</p>
+<p>如果直接使用<code>current_app = _find_app()</code>有什么区别呢？区别就在于，我们导入进来之后，<code>current_app</code>就不会再变化了。那么上述的代码也就无法正常运行。</p>
+<p>个人理解这个地方设计成<code>proxy</code>这个中间层的原因就是为了让动态变化的数据安全的提供给外界。</p>
+
+      </div>
+      
+      
+    </body>
+    
+    
+    
+    
+    
+    
+    
+  </html>

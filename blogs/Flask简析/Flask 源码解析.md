@@ -197,24 +197,24 @@ def dispatch_request(self):
 官方文档中提供的示例程序`hello world`是通过`python`中的装饰器来实现的，其本质是调用了`add_url_rule`这个方法：
 
 ```python
-    def add_url_rule(self, rule, endpoint=None, view_func=None,
-                     provide_automatic_options=None, **options):
-        if endpoint is None:
-            endpoint = _endpoint_from_view_func(view_func)
-        options['endpoint'] = endpoint
-        methods = options.pop('methods', None)
-		 
-		 # ... 删除了一些不相关的逻辑代码
-		 
-        rule = self.url_rule_class(rule, methods=methods, **options)
+def add_url_rule(self, rule, endpoint=None, view_func=None,
+                    provide_automatic_options=None, **options):
+    if endpoint is None:
+        endpoint = _endpoint_from_view_func(view_func)
+    options['endpoint'] = endpoint
+    methods = options.pop('methods', None)
         
-        self.url_map.add(rule)
-        if view_func is not None:
-            old_func = self.view_functions.get(endpoint)
-            if old_func is not None and old_func != view_func:
-                raise AssertionError('View function mapping is overwriting an '
-                                     'existing endpoint function: %s' % endpoint)
-            self.view_functions[endpoint] = view_func
+        # ... 删除了一些不相关的逻辑代码
+        
+    rule = self.url_rule_class(rule, methods=methods, **options)
+    
+    self.url_map.add(rule)
+    if view_func is not None:
+        old_func = self.view_functions.get(endpoint)
+        if old_func is not None and old_func != view_func:
+            raise AssertionError('View function mapping is overwriting an '
+                                    'existing endpoint function: %s' % endpoint)
+        self.view_functions[endpoint] = view_func
 ```
 
 可以看到有几个比较关键的逻辑：
@@ -383,4 +383,218 @@ request = LocalProxy(partial(_lookup_req_object, 'request'))
 session = LocalProxy(partial(_lookup_req_object, 'session'))
 g = LocalProxy(partial(_lookup_app_object, 'g'))
 ```
+其中`LocalStack`是一个线程安全的堆栈数据结构。是`werkzeug`框架提供的：
 
+
+```python
+class LocalStack(object):
+    def __init__(self):
+        self._local = Local()
+
+    def __release_local__(self):
+        self._local.__release_local__()
+
+    def _get__ident_func__(self):
+        return self._local.__ident_func__
+
+    def _set__ident_func__(self, value):
+        object.__setattr__(self._local, '__ident_func__', value)
+    __ident_func__ = property(_get__ident_func__, _set__ident_func__)
+    del _get__ident_func__, _set__ident_func__
+
+    def __call__(self):
+        def _lookup():
+            rv = self.top
+            if rv is None:
+                raise RuntimeError('object unbound')
+            return rv
+        return LocalProxy(_lookup)
+
+    def push(self, obj):
+        rv = getattr(self._local, 'stack', None)
+        if rv is None:
+            self._local.stack = rv = []
+        rv.append(obj)
+        return rv
+
+    def pop(self):
+        stack = getattr(self._local, 'stack', None)
+        if stack is None:
+            return None
+        elif len(stack) == 1:
+            release_local(self._local)
+            return stack[-1]
+        else:
+            return stack.pop()
+
+    @property
+    def top(self):
+        try:
+            return self._local.stack[-1]
+        except (AttributeError, IndexError):
+            return None
+
+```
+代码很精简，其原理就是利用`Local`实现线程隔离。而`Local`类内部是通过以线程的id为键，map为值的字典：
+
+```python
+class Local(object):
+    __slots__ = ('__storage__', '__ident_func__')
+
+    def __init__(self):
+        object.__setattr__(self, '__storage__', {})
+        object.__setattr__(self, '__ident_func__', get_ident)
+
+    def __iter__(self):
+        return iter(self.__storage__.items())
+
+    def __call__(self, proxy):
+        """Create a proxy for a name."""
+        return LocalProxy(self, proxy)
+
+    def __release_local__(self):
+        self.__storage__.pop(self.__ident_func__(), None)
+
+    # 无论是设置还是删除，都会通过self.__storage__先获取当前
+    # 线程的id对应的map，然后在再设置属性，通过这样的手段来获得线程隔离的效果。
+    def __getattr__(self, name):
+        try:
+            return self.__storage__[self.__ident_func__()][name]
+        except KeyError:
+            raise AttributeError(name)
+
+    def __setattr__(self, name, value):
+        ident = self.__ident_func__()
+        storage = self.__storage__
+        try:
+            storage[ident][name] = value
+        except KeyError:
+            storage[ident] = {name: value}
+
+    def __delattr__(self, name):
+        try:
+            del self.__storage__[self.__ident_func__()][name]
+        except KeyError:
+            raise AttributeError(name)
+```
+
+可以看到，`Local`对象内部的数据都是保存在` __storage__` 属性的，这个属性变量是个嵌套的字典：`map[ident]map[key]value`。最外面字典 `key `是线程或者协程的` identity`，`value` 是另外一个字典，这个内部字典就是用户自定义的` key-value `键值对。用户访问实例的属性，就变成了访问内部的字典，外面字典的 `key` 是自动关联的。`__ident_func` 是 协程的`get_current`或者线程的 `get_ident`，从而获取当前代码所在线程或者协程的`id`。
+
+除了这些基本操作之外，`Local `还实现了` __release_local__ `，用来清空（析构）当前线程或者协程的数据（状态）。`__call__ `操作来创建一个` LocalProxy `对象，
+
+解释完`Local`及`LocakStack`，再回到`globals.py`文件中，发现`current_app`定义如下:
+```python
+def _find_app():
+    top = _app_ctx_stack.top
+    if top is None:
+        raise RuntimeError(_app_ctx_err_msg)
+    return top.app
+current_app = LocalProxy(_find_app)
+```
+其中`LocalProxy`类的定义如下：
+```python
+class LocalProxy(object):
+    __slots__ = ('__local', '__dict__', '__name__', '__wrapped__')
+    def __init__(self, local, name=None):
+        object.__setattr__(self, '_LocalProxy__local', local)
+        object.__setattr__(self, '__name__', name)
+        if callable(local) and not hasattr(local, '__release_local__'):
+            object.__setattr__(self, '__wrapped__', local)
+
+    def _get_current_object(self):
+        """Return the current object.  This is useful if you want the real
+        object behind the proxy at a time for performance reasons or because
+        you want to pass the object into a different context.
+        """
+        if not hasattr(self.__local, '__release_local__'):
+            return self.__local()
+        try:
+            return getattr(self.__local, self.__name__)
+        except AttributeError:
+            raise RuntimeError('no object bound to %s' % self.__name__)
+```
+
+简单来说就是`LocalProxy`对象在构造时需要一个`callable`参数。之后的对`LocalProxy`对象的操作都会转发到`callable`参数的返回值上。
+
+至此，就可以理清楚`Flask`中的几个上下文之间的关系及具体实现：
+
+1. 无论是请求上下文还是`app`上下文，均存储在线程隔离级别的栈结构中。
+2. 四个常用的上下文`current_app`,`request`,`session`,`g`均是通过`LocalProxy`转发操作至对应的栈结构中取出。
+
+
+```dot
+ digraph G {
+    取上下文操作 -> LocalProxy
+    LocalProxy -> LocalStack
+    LocalStack -> 操作Local;
+    Local -> 线程对应的map的stack数组
+ }
+```
+在解释为什么需要用到`stack`及`proxy`设计模式之前，我们还需要回到之前遗留的问题上，下下文是什么时候被压入栈内的？
+
+上文提到过，WSGI协议需要一个`callabe`对象，每次请求过来都会调用这个对象来处理请求,`Flask`实例在`__call__`方法内部调用`wsgi_app`方法，进行相应的`ctx`压入操作:
+
+```python
+def push(self):
+    top = _request_ctx_stack.top
+    if top is not None and top.preserved:
+        top.pop(top._preserved_exc)
+    app_ctx = _app_ctx_stack.top
+    if app_ctx is None or app_ctx.app != self.app:
+        app_ctx = self.app.app_context()
+        app_ctx.push()
+        self._implicit_app_ctx_stack.append(app_ctx)
+    else:
+        self._implicit_app_ctx_stack.append(None)
+
+    ...
+```
+
+也就是说，`flask`实例会在每次请求过来时，都会进行一个`app_ctx`及`req_ctx`的压入操作。
+
+在了解了具体实现方式后，再来思考为什么要用stack及proxy这种设计模式。
+
+1. 为什么要使用stack这种设计模式？
+
+`Flask`是允许多个实例共存的，比如：
+
+```python
+from werkzeug.wsgi import DispatcherMiddleware
+from frontend_app import application as frontend
+from backend_app import application as backend
+
+application = DispatcherMiddleware(frontend, {
+    '/backend':     backend
+})
+```
+正是这个原因，导致`flask`必须设计一种机制，来保证每次请求过来时，需要能明确获得当前`req`到底是属于哪一个实例的(比如需要获得`req.path`)。
+
+再举个例子，`flask`提供`url_for`函数：
+
+```python
+from flask import url_for
+```
+由于`url_for`函数是强依赖于`current_app`的，以上面那个`frontend`及`backend`例子来说。`frontend`及`backend`可能都有`/login`这个路径，此时`url_fro`应该返回合适的`app`中的`view`来处理这个请求。
+
+2. 为什么要用`LocalProxy`？
+
+答案是为了更加灵活，其实仅仅靠一个栈结构是无法支持多个app共存的需求的。比如:
+
+```python
+from flask import current_app
+
+app = create_app()
+admin_app = create_admin_app()
+
+def do_something():
+    with app.app_context():
+        work_on(current_app)
+        with admin_app.app_context():
+            work_on(current_app)
+```
+
+我们拿`current_app = LocalProxy(_find_app) `来举例子。每次使用 `current_app `的时候，他都会调用` _find_app `函数，然后对得到的变量进行操作。
+
+如果直接使用` current_app = _find_app() `有什么区别呢？区别就在于，我们导入进来之后，`current_app `就不会再变化了。那么上述的代码也就无法正常运行。
+
+个人理解这个地方设计成`proxy`这个中间层的原因就是为了让动态变化的数据安全的提供给外界。
